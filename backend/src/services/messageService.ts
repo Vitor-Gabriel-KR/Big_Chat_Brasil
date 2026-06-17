@@ -5,6 +5,7 @@ import { findClientByDocumentId } from '../repositories/clientRepository';
 import { findConversationByIdAndClientId } from '../repositories/conversationRepository';
 import { pool } from '../repositories/db';
 import { enqueueMessageJob } from '../queue';
+import { loadClientBillingState } from './billingService';
 
 const sendMessageSchema = z.object({
   documentId: z.string().min(1),
@@ -22,6 +23,7 @@ export const enqueueMessage = async (input: unknown) => {
     throw new ApiError('Cliente não encontrado.', 404);
   }
 
+  const billingClient = await loadClientBillingState(client.id);
   const conversation = await findConversationByIdAndClientId(payload.conversationId, client.id);
 
   if (!conversation || conversation.status !== 'open') {
@@ -29,23 +31,40 @@ export const enqueueMessage = async (input: unknown) => {
   }
 
   const cost = messageCostByPriority(payload.priority as MessagePriority);
-  const nextBalance = Number((client.balance - cost).toFixed(2));
-
-  if (nextBalance < 0) {
-    throw new ApiError('Saldo insuficiente para enviar esta mensagem.', 400);
-  }
-
   const connection = await pool.connect();
 
   try {
     await connection.query('BEGIN');
 
+    let nextBalance = billingClient.balance;
+    let nextMonthlyConsumed = billingClient.monthlyConsumed;
+
+    if (billingClient.planType === 'prepaid') {
+      if (billingClient.balance < cost) {
+        throw new ApiError('Saldo insuficiente para enviar esta mensagem.', 400);
+      }
+
+      nextBalance = Number((billingClient.balance - cost).toFixed(2));
+    } else {
+      const monthlyLimit = billingClient.creditLimit ?? billingClient.balance;
+      const calculatedConsumed = Number((billingClient.monthlyConsumed + cost).toFixed(2));
+
+      if (calculatedConsumed > monthlyLimit) {
+        throw new ApiError('Limite mensal excedido para este cliente.', 400);
+      }
+
+      nextMonthlyConsumed = calculatedConsumed;
+      nextBalance = Number((monthlyLimit - calculatedConsumed).toFixed(2));
+    }
+
     const updatedClientResult = await connection.query(
       `UPDATE clients
-       SET balance = $2, updated_at = NOW()
+       SET balance = $2,
+           monthly_consumed = $3,
+           updated_at = NOW()
        WHERE id = $1
-       RETURNING id, name, document_id, plan_type, balance::float8 AS balance, active`,
-      [client.id, nextBalance],
+       RETURNING id, name, document_id, plan_type, balance::float8 AS balance, credit_limit::float8 AS credit_limit, monthly_consumed::float8 AS monthly_consumed, billing_cycle_at::text AS billing_cycle_at, active`,
+      [client.id, nextBalance, nextMonthlyConsumed],
     );
 
     const messageResult = await connection.query(
@@ -77,6 +96,27 @@ export const enqueueMessage = async (input: unknown) => {
        SET updated_at = NOW()
        WHERE id = $1`,
       [conversation.id],
+    );
+
+    await connection.query(
+      `INSERT INTO financial_transactions (
+         client_id,
+         type,
+         amount,
+         previous_balance,
+         new_balance,
+         note
+       )
+       VALUES ($1, 'debit', $2, $3, $4, $5)`,
+      [
+        client.id,
+        cost,
+        billingClient.balance,
+        nextBalance,
+        billingClient.planType === 'prepaid'
+          ? 'Débito pré-pago por mensagem'
+          : 'Consumo pós-pago por mensagem',
+      ],
     );
 
     await connection.query('COMMIT');
@@ -112,6 +152,12 @@ export const enqueueMessage = async (input: unknown) => {
         documentId: updatedClientResult.rows[0].document_id,
         planType: updatedClientResult.rows[0].plan_type,
         balance: Number(updatedClientResult.rows[0].balance),
+        creditLimit:
+          updatedClientResult.rows[0].credit_limit === null
+            ? null
+            : Number(updatedClientResult.rows[0].credit_limit),
+        monthlyConsumed: Number(updatedClientResult.rows[0].monthly_consumed),
+        billingCycleAt: updatedClientResult.rows[0].billing_cycle_at,
         active: updatedClientResult.rows[0].active,
       },
       message: createdMessage,

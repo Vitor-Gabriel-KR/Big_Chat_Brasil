@@ -23,7 +23,8 @@ export const messageCostMap: Record<MessagePriority, number> = {
   urgent: 0.5,
 };
 
-const pendingJobs: QueueJob[] = [];
+const urgentQueue: QueueJob[] = [];
+const normalQueue: QueueJob[] = [];
 let workerTimer: NodeJS.Timeout | null = null;
 let workerRunning = false;
 
@@ -37,12 +38,19 @@ export const sortQueueMessages = (messages: Message[]) =>
   });
 
 export const enqueueMessageJob = (job: QueueJob) => {
-  pendingJobs.push(job);
+  if (job.priority === 'urgent') {
+    urgentQueue.push(job);
+    return;
+  }
+
+  normalQueue.push(job);
 };
 
 export const getQueueSnapshot = () => ({
-  pending: pendingJobs.length,
-  jobs: [...pendingJobs],
+  pending: urgentQueue.length + normalQueue.length,
+  urgent: urgentQueue.length,
+  normal: normalQueue.length,
+  jobs: [...urgentQueue, ...normalQueue],
 });
 
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -61,18 +69,19 @@ const updateMessageStatus = async (
   );
 };
 
+const takeNextJob = () => urgentQueue.shift() ?? normalQueue.shift() ?? null;
+
 const processNextJob = async (logger: QueueLogger) => {
-  if (workerRunning || pendingJobs.length === 0) {
+  if (workerRunning) {
+    return;
+  }
+
+  const job = takeNextJob();
+  if (!job) {
     return;
   }
 
   workerRunning = true;
-  const job = pendingJobs.shift();
-
-  if (!job) {
-    workerRunning = false;
-    return;
-  }
 
   try {
     logger.info({
@@ -83,7 +92,8 @@ const processNextJob = async (logger: QueueLogger) => {
       priority: job.priority,
       cost: job.cost,
       content: job.content,
-      pendingJobs: pendingJobs.length,
+      urgentPending: urgentQueue.length,
+      normalPending: normalQueue.length,
     });
 
     await updateMessageStatus(job.messageId, 'processing', null);
@@ -102,7 +112,8 @@ const processNextJob = async (logger: QueueLogger) => {
       messageId: job.messageId,
       conversationId: job.conversationId,
       priority: job.priority,
-      remainingJobs: pendingJobs.length,
+      urgentPending: urgentQueue.length,
+      normalPending: normalQueue.length,
     });
   } catch (error) {
     logger.error({
@@ -112,7 +123,12 @@ const processNextJob = async (logger: QueueLogger) => {
     });
 
     await updateMessageStatus(job.messageId, 'queued', null);
-    pendingJobs.unshift(job);
+
+    if (job.priority === 'urgent') {
+      urgentQueue.unshift(job);
+    } else {
+      normalQueue.unshift(job);
+    }
   } finally {
     workerRunning = false;
   }
@@ -148,6 +164,8 @@ export const bootstrapQueueFromDatabase = async (logger: QueueLogger) => {
   logger.info({
     event: 'queue.bootstrap.loaded',
     queuedMessages: queuedMessages.length,
+    urgentQueued: urgentQueue.length,
+    normalQueued: normalQueue.length,
   });
 };
 
@@ -159,4 +177,6 @@ export const stopMessageWorker = () => {
   clearInterval(workerTimer);
   workerTimer = null;
   workerRunning = false;
+  urgentQueue.length = 0;
+  normalQueue.length = 0;
 };

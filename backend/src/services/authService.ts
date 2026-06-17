@@ -1,5 +1,6 @@
 import { ApiError, Client, detectDocumentType, normalizeDocumentId } from '../domain';
 import { findClientByDocumentId } from '../repositories/clientRepository';
+import { loadClientBillingState } from './billingService';
 
 export const loginWithDocument = async (rawDocumentId: string, documentType: 'CPF' | 'CNPJ') => {
   const documentId = normalizeDocumentId(rawDocumentId);
@@ -27,7 +28,7 @@ export const loginWithDocument = async (rawDocumentId: string, documentType: 'CP
     throw new ApiError('Cliente não encontrado ou inativo.', 404);
   }
 
-  return client;
+  return loadClientBillingState(client.id);
 };
 
 export const serializeSession = (client: Client) => ({
@@ -37,4 +38,3 @@ export const serializeSession = (client: Client) => ({
     documentType: client.documentId.length === 11 ? 'CPF' : 'CNPJ',
   },
 });
-

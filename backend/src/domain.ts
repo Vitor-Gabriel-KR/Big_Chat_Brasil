@@ -1,6 +1,7 @@
 export type PlanType = 'prepaid' | 'postpaid';
 export type MessagePriority = 'normal' | 'urgent';
 export type MessageStatus = 'queued' | 'processing' | 'sent' | 'failed';
+export type FinancialTransactionType = 'debit' | 'credit' | 'limit_adjustment' | 'cycle_reset' | 'plan_conversion';
 
 export type Client = {
   id: string;
@@ -8,6 +9,9 @@ export type Client = {
   documentId: string;
   planType: PlanType;
   balance: number;
+  creditLimit: number | null;
+  monthlyConsumed: number;
+  billingCycleAt: string;
   active: boolean;
 };
 
@@ -45,10 +49,23 @@ export type DashboardSnapshot = {
     urgentMessages: number;
     totalQueueCost: number;
     balance: number;
+    creditLimit: number | null;
+    monthlyConsumed: number;
   };
   conversations: Conversation[];
   messages: Message[];
   queue: Message[];
+};
+
+export type FinancialTransaction = {
+  id: string;
+  clientId: string;
+  type: FinancialTransactionType;
+  amount: number;
+  previousBalance: number;
+  newBalance: number;
+  note: string | null;
+  createdAt: string;
 };
 
 export class ApiError extends Error {
@@ -106,3 +123,16 @@ export const formatMoney = (value: number) =>
 
 export const messageCostByPriority = (priority: MessagePriority) => (priority === 'urgent' ? 0.5 : 0.25);
 
+export const isSameBillingMonth = (billingCycleAt: string, referenceDate = new Date()) => {
+  const cycleDate = new Date(billingCycleAt);
+
+  return (
+    cycleDate.getUTCFullYear() === referenceDate.getUTCFullYear() &&
+    cycleDate.getUTCMonth() === referenceDate.getUTCMonth()
+  );
+};
+
+export const startOfCurrentMonthIso = () => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+};

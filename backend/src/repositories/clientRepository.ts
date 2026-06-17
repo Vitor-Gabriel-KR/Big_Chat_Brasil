@@ -7,6 +7,9 @@ type ClientRow = {
   document_id: string;
   plan_type: PlanType;
   balance: string | number;
+  credit_limit: string | number | null;
+  monthly_consumed: string | number;
+  billing_cycle_at: string;
   active: boolean;
 };
 
@@ -16,12 +19,15 @@ const mapClient = (row: ClientRow): Client => ({
   documentId: row.document_id,
   planType: row.plan_type,
   balance: toMoney(row.balance),
+  creditLimit: row.credit_limit === null ? null : toMoney(row.credit_limit),
+  monthlyConsumed: toMoney(row.monthly_consumed),
+  billingCycleAt: row.billing_cycle_at,
   active: row.active,
 });
 
 export const findClientByDocumentId = async (documentId: string) => {
   const result = await pool.query<ClientRow>(
-    `SELECT id, name, document_id, plan_type, balance::float8 AS balance, active
+    `SELECT id, name, document_id, plan_type, balance::float8 AS balance, credit_limit::float8 AS credit_limit, monthly_consumed::float8 AS monthly_consumed, billing_cycle_at::text AS billing_cycle_at, active
      FROM clients
      WHERE document_id = $1
      LIMIT 1`,
@@ -33,7 +39,7 @@ export const findClientByDocumentId = async (documentId: string) => {
 
 export const findClientById = async (clientId: string) => {
   const result = await pool.query<ClientRow>(
-    `SELECT id, name, document_id, plan_type, balance::float8 AS balance, active
+    `SELECT id, name, document_id, plan_type, balance::float8 AS balance, credit_limit::float8 AS credit_limit, monthly_consumed::float8 AS monthly_consumed, billing_cycle_at::text AS billing_cycle_at, active
      FROM clients
      WHERE id = $1
      LIMIT 1`,
@@ -48,10 +54,9 @@ export const updateClientBalance = async (clientId: string, balance: number) => 
     `UPDATE clients
      SET balance = $2, updated_at = NOW()
      WHERE id = $1
-     RETURNING id, name, document_id, plan_type, balance::float8 AS balance, active`,
+     RETURNING id, name, document_id, plan_type, balance::float8 AS balance, credit_limit::float8 AS credit_limit, monthly_consumed::float8 AS monthly_consumed, billing_cycle_at::text AS billing_cycle_at, active`,
     [clientId, balance],
   );
 
   return mapClient(result.rows[0]);
 };
-

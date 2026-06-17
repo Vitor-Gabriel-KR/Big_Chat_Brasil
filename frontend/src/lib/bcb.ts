@@ -8,6 +8,9 @@ export type Client = {
   documentId: string;
   planType: PlanType;
   balance: number;
+  creditLimit: number | null;
+  monthlyConsumed: number;
+  billingCycleAt: string;
   active: boolean;
 };
 
@@ -40,6 +43,8 @@ export type DashboardSnapshot = {
     urgentMessages: number;
     totalQueueCost: number;
     balance: number;
+    creditLimit: number | null;
+    monthlyConsumed: number;
   };
   conversations: Conversation[];
   messages: Message[];
@@ -86,4 +91,3 @@ export const formatMoney = (value: number) =>
     style: 'currency',
     currency: 'BRL',
   }).format(value);
-

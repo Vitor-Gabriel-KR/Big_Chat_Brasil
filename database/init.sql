@@ -13,6 +13,16 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_status') THEN
     CREATE TYPE message_status AS ENUM ('queued', 'processing', 'sent', 'failed');
   END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_type') THEN
+    CREATE TYPE transaction_type AS ENUM (
+      'debit',
+      'credit',
+      'limit_adjustment',
+      'cycle_reset',
+      'plan_conversion'
+    );
+  END IF;
 END $$;
 
 CREATE TABLE IF NOT EXISTS clients (
@@ -21,6 +31,9 @@ CREATE TABLE IF NOT EXISTS clients (
   document_id VARCHAR(32) NOT NULL UNIQUE,
   plan_type plan_type NOT NULL,
   balance NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
+  credit_limit NUMERIC(12, 2),
+  monthly_consumed NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  billing_cycle_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -48,10 +61,22 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS financial_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  type transaction_type NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  previous_balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  new_balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_conversations_client_id ON conversations(client_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_client_id ON messages(client_id);
 CREATE INDEX IF NOT EXISTS idx_messages_queue ON messages(status, priority, queued_at);
+CREATE INDEX IF NOT EXISTS idx_financial_transactions_client_id_created_at ON financial_transactions(client_id, created_at DESC);
 
 INSERT INTO clients (id, name, document_id, plan_type, balance, active)
 VALUES
@@ -63,6 +88,9 @@ SET
   name = EXCLUDED.name,
   plan_type = EXCLUDED.plan_type,
   balance = EXCLUDED.balance,
+  credit_limit = CASE WHEN EXCLUDED.plan_type = 'postpaid' THEN EXCLUDED.balance ELSE NULL END,
+  monthly_consumed = 0,
+  billing_cycle_at = NOW(),
   active = TRUE,
   updated_at = NOW();
 

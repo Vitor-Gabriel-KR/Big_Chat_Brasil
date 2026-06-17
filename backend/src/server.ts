@@ -1,8 +1,11 @@
 import Fastify from 'fastify';
 import { env, pool } from './repositories/db';
+import { ensureBusinessSchema } from './repositories/migrations';
 import { seedDevelopmentData } from './repositories/seed';
 import { registerAuthRoutes } from './controllers/authController';
+import { registerBillingRoutes } from './controllers/billingController';
 import { registerDashboardRoutes } from './controllers/dashboardController';
+import { registerFinanceRoutes } from './controllers/financeController';
 import { registerMessageRoutes } from './controllers/messageController';
 import { startMessageWorker, stopMessageWorker, getQueueSnapshot, bootstrapQueueFromDatabase } from './queue';
 
@@ -27,11 +30,14 @@ app.get('/queue/status', async () => ({
 
 const start = async () => {
   try {
+    await ensureBusinessSchema();
     await seedDevelopmentData();
     await bootstrapQueueFromDatabase(app.log);
     startMessageWorker(app.log);
     await app.register(registerAuthRoutes);
+    await app.register(registerBillingRoutes);
     await app.register(registerDashboardRoutes);
+    await app.register(registerFinanceRoutes);
     await app.register(registerMessageRoutes);
     await app.listen({ port: env.PORT, host: '0.0.0.0' });
   } catch (error) {

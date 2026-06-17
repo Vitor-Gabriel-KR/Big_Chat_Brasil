@@ -12,6 +12,9 @@ export const seedDevelopmentData = async () => {
       name = EXCLUDED.name,
       plan_type = EXCLUDED.plan_type,
       balance = EXCLUDED.balance,
+      credit_limit = CASE WHEN EXCLUDED.plan_type = 'postpaid' THEN EXCLUDED.balance ELSE NULL END,
+      monthly_consumed = 0,
+      billing_cycle_at = NOW(),
       active = TRUE,
       updated_at = NOW();
   `);
