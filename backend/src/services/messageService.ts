@@ -4,6 +4,7 @@ import { ApiError, MessagePriority, messageCostByPriority, normalizeDocumentId }
 import { findClientByDocumentId } from '../repositories/clientRepository';
 import { findConversationByIdAndClientId } from '../repositories/conversationRepository';
 import { pool } from '../repositories/db';
+import { enqueueMessageJob } from '../queue';
 
 const sendMessageSchema = z.object({
   documentId: z.string().min(1),
@@ -80,6 +81,30 @@ export const enqueueMessage = async (input: unknown) => {
 
     await connection.query('COMMIT');
 
+    const createdMessage = {
+      id: messageResult.rows[0].id,
+      conversationId: messageResult.rows[0].conversation_id,
+      clientId: messageResult.rows[0].client_id,
+      content: messageResult.rows[0].content,
+      priority: messageResult.rows[0].priority,
+      cost: Number(messageResult.rows[0].cost),
+      status: messageResult.rows[0].status,
+      queuedAt: messageResult.rows[0].queued_at,
+      processedAt: messageResult.rows[0].processed_at,
+      createdAt: messageResult.rows[0].created_at,
+      conversationTitle: conversation.title,
+    };
+
+    enqueueMessageJob({
+      messageId: createdMessage.id,
+      clientId: client.id,
+      conversationId: conversation.id,
+      priority: createdMessage.priority,
+      cost: createdMessage.cost,
+      content: createdMessage.content,
+      conversationTitle: conversation.title,
+    });
+
     return {
       client: {
         id: updatedClientResult.rows[0].id,
@@ -89,19 +114,7 @@ export const enqueueMessage = async (input: unknown) => {
         balance: Number(updatedClientResult.rows[0].balance),
         active: updatedClientResult.rows[0].active,
       },
-      message: {
-        id: messageResult.rows[0].id,
-        conversationId: messageResult.rows[0].conversation_id,
-        clientId: messageResult.rows[0].client_id,
-        content: messageResult.rows[0].content,
-        priority: messageResult.rows[0].priority,
-        cost: Number(messageResult.rows[0].cost),
-        status: messageResult.rows[0].status,
-        queuedAt: messageResult.rows[0].queued_at,
-        processedAt: messageResult.rows[0].processed_at,
-        createdAt: messageResult.rows[0].created_at,
-        conversationTitle: conversation.title,
-      },
+      message: createdMessage,
     };
   } catch (error) {
     await connection.query('ROLLBACK');

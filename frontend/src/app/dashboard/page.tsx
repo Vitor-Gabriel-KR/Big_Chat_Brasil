@@ -113,7 +113,6 @@ export default function DashboardPage() {
     }
   };
 
-  // ─── Loading skeleton ────────────────────────────────────────────────────────
   if (!client || loading) {
     return (
       <main className="h-screen bg-[#0A0D14] flex items-center justify-center p-4">
@@ -130,14 +129,9 @@ export default function DashboardPage() {
 
   return (
     <main className="h-screen bg-[#0A0D14] flex overflow-hidden">
-      {/* ── Outer shell ── */}
       <div className="w-full flex border-t border-[#1E2535] overflow-hidden" style={{ height: '100vh' }}>
-        {/* ════════════════════════════════════════════
-            SIDEBAR
-        ════════════════════════════════════════════ */}
         <aside className="w-64 min-w-[256px] bg-[#0E1320] border-r border-[#1E2535] flex flex-col overflow-hidden">
 
-          {/* Client info */}
           <div className="px-5 py-5 border-b border-[#1E2535]">
             <span className="inline-flex items-center gap-1.5 bg-[#0A2A1A] text-[#0DDB7A] text-[10px] font-semibold tracking-widest uppercase px-2.5 py-1 rounded-md mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-[#0DDB7A]" />
@@ -147,7 +141,6 @@ export default function DashboardPage() {
             <p className="text-[#556080] text-[12px] font-mono mt-1">{formatDocumentId(client.documentId)}</p>
           </div>
 
-          {/* Balance */}
           <div className="mx-4 mt-4 bg-[#0A0D14] border border-[#1E2535] rounded-xl p-4">
             <p className="text-[10px] text-[#556080] font-semibold tracking-widest uppercase">Saldo disponível</p>
             <p className="text-[#E8F0FF] text-2xl font-semibold tracking-tight mt-1.5">
@@ -158,7 +151,6 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* KPI grid */}
           <div className="grid grid-cols-2 gap-2 px-4 py-3">
             {[
               { label: 'Conversas', value: snapshot?.summary.openConversations ?? 0, color: 'text-[#C8D8F0]' },
@@ -183,7 +175,6 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Conversation list */}
           <div className="flex-1 overflow-y-auto px-2.5 pb-2 space-y-1">
             {filteredConversations.map((conversation) => {
               const qCount = queuedMessages.filter((m) => m.conversationId === conversation.id).length;
@@ -217,7 +208,6 @@ export default function DashboardPage() {
             })}
           </div>
 
-          {/* Logout */}
           <div className="px-4 py-3 border-t border-[#1E2535]">
             <button
               type="button"
@@ -228,10 +218,6 @@ export default function DashboardPage() {
             </button>
           </div>
         </aside>
-
-        {/* ════════════════════════════════════════════
-            MAIN CONTENT
-        ════════════════════════════════════════════ */}
         <section className="flex-1 flex flex-col min-w-0 bg-[#0A0D14]">
 
           {/* Header */}

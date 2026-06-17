@@ -79,3 +79,51 @@ export const listQueuedMessagesByClientId = async (clientId: string) => {
   return result.rows.map(mapMessage);
 };
 
+export const findMessageById = async (messageId: string) => {
+  const result = await pool.query<MessageRow>(
+    `SELECT
+       m.id,
+       m.conversation_id,
+       m.client_id,
+       m.content,
+       m.priority,
+       m.cost::float8 AS cost,
+       m.status,
+       m.queued_at::text AS queued_at,
+       m.processed_at::text AS processed_at,
+       m.created_at::text AS created_at,
+       COALESCE(c.title, 'Conversa sem título') AS conversation_title
+     FROM messages m
+     LEFT JOIN conversations c ON c.id = m.conversation_id
+     WHERE m.id = $1
+     LIMIT 1`,
+    [messageId],
+  );
+
+  return result.rows[0] ? mapMessage(result.rows[0]) : null;
+};
+
+export const listQueuedMessagesForWorker = async () => {
+  const result = await pool.query<MessageRow>(
+    `SELECT
+       m.id,
+       m.conversation_id,
+       m.client_id,
+       m.content,
+       m.priority,
+       m.cost::float8 AS cost,
+       m.status,
+       m.queued_at::text AS queued_at,
+       m.processed_at::text AS processed_at,
+       m.created_at::text AS created_at,
+       COALESCE(c.title, 'Conversa sem título') AS conversation_title
+     FROM messages m
+     LEFT JOIN conversations c ON c.id = m.conversation_id
+     WHERE m.status = 'queued'
+     ORDER BY
+       CASE WHEN m.priority = 'urgent' THEN 0 ELSE 1 END,
+       m.queued_at ASC`,
+  );
+
+  return result.rows.map(mapMessage);
+};
