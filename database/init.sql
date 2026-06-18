@@ -103,10 +103,10 @@ SET
 
 INSERT INTO conversations (id, client_id, title, status)
 VALUES
-  ('44444444-4444-4444-8444-444444444444', '11111111-1111-4111-8111-111111111111', 'Financeiro', 'open'),
-  ('55555555-5555-4555-8555-555555555555', '11111111-1111-4111-8111-111111111111', 'Cobrança', 'open'),
-  ('66666666-6666-4666-8666-666666666666', '22222222-2222-4222-8222-222222222222', 'Operações', 'open'),
-  ('77777777-7777-4777-8777-777777777777', '33333333-3333-4333-8333-333333333333', 'Suporte', 'closed')
+  ('44444444-4444-4444-8444-444444444444', '11111111-1111-4111-8111-111111111111', 'Maria Oliveira - Financeiro', 'open'),
+  ('55555555-5555-4555-8555-555555555555', '11111111-1111-4111-8111-111111111111', 'Carlos Pereira - Cobrança', 'open'),
+  ('66666666-6666-4666-8666-666666666666', '22222222-2222-4222-8222-222222222222', 'Ana Costa - Operações', 'open'),
+  ('77777777-7777-4777-8777-777777777777', '33333333-3333-4333-8333-333333333333', 'Pedro Santos - Suporte', 'closed')
 ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO messages (id, conversation_id, client_id, content, priority, cost, status, sender, queued_at, processed_at, read_at, created_at)

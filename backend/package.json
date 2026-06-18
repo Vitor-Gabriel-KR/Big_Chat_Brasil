@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node --transpile-only src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "ts-node --transpile-only tests/api-endpoints.test.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

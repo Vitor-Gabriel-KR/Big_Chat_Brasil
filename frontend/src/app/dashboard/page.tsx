@@ -133,11 +133,6 @@ export default function DashboardPage() {
   return (
     <main className="h-screen bg-[#0A0D14] flex overflow-hidden">
       <div className="w-full flex border-t border-[#1E2535] overflow-hidden" style={{ height: '100vh' }}>
-        {/*
-          Sidebar (lista de conversas + saldo + KPIs).
-          Desktop (md+): sempre visível, lado a lado com o chat.
-          Mobile: só aparece quando mobileView === 'list' (Tela 1 do fluxo).
-        */}
         <aside
           className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-64 md:min-w-[256px] bg-[#0E1320] border-r border-[#1E2535] flex-col overflow-hidden`}
         >
@@ -231,11 +226,6 @@ export default function DashboardPage() {
             </button>
           </div>
         </aside>
-        {/*
-          Painel de chat.
-          Desktop (md+): sempre visível, lado a lado com a sidebar.
-          Mobile: só aparece quando mobileView === 'chat' (Tela 2 do fluxo).
-        */}
         <section
           className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0 bg-[#0A0D14]`}
         >
@@ -243,7 +233,6 @@ export default function DashboardPage() {
           {/* Header */}
           <header className="flex items-start justify-between gap-4 px-4 md:px-6 py-4 md:py-5 border-b border-[#1E2535] flex-shrink-0">
             <div className="flex items-start gap-3 min-w-0">
-              {/* Botão de voltar — só existe no mobile, leva de volta para a lista de conversas */}
               <button
                 type="button"
                 onClick={() => setMobileView('list')}
@@ -289,8 +278,6 @@ export default function DashboardPage() {
               conversationMessages.length > 0 ? (
                 conversationMessages.map((item) => {
                   const isUrgent = item.priority === 'urgent';
-                  // sender === 'company': mensagem que a própria empresa enviou (alinhada à direita, em azul).
-                  // sender === 'recipient': resposta do cliente final (alinhada à esquerda, em cinza neutro).
                   const isFromCompany = item.sender === 'company';
                   return (
                     <article
@@ -360,16 +347,11 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Composer */}
+
           <form
             onSubmit={handleSendMessage}
             className="px-4 md:px-6 py-3 md:py-4 border-t border-[#1E2535] flex-shrink-0 space-y-2.5"
           >
-            {/*
-              No mobile (telas estreitas) o seletor Normal/Urgente fica em uma linha própria,
-              acima do campo de texto, para não espremer os botões. No desktop (md+) tudo fica
-              numa única linha, lado a lado, como já era antes.
-            */}
             <div className="flex flex-col md:flex-row gap-2.5 md:items-center">
               <div className="flex gap-2.5 items-center order-2 md:order-1 md:flex-1">
                 <input
@@ -388,7 +370,6 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {/* Priority toggle — obrigatório, sempre visível antes do envio */}
               <div className="flex bg-[#0A0D14] border border-[#1E2535] rounded-lg p-0.5 gap-0.5 flex-shrink-0 order-1 md:order-2 self-start md:self-auto">
                 <button
                   type="button"
