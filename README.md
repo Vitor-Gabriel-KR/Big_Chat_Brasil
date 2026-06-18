@@ -56,6 +56,14 @@ Após a inicialização, os serviços estarão disponíveis em:
 
 ---
 
+# Preview do projeto
+
+<img width="1876" height="926" alt="image" src="https://github.com/user-attachments/assets/01b36fa1-317c-4d3f-a143-bcd503aa177a" />
+
+<img width="1857" height="924" alt="image" src="https://github.com/user-attachments/assets/d0e08bee-3100-4e4a-87af-e2962258ae76" />
+
+---
+
 # Credenciais de Teste
 
 Documentos mocados para autenticação:
