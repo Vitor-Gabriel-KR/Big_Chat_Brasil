@@ -8,10 +8,10 @@ type TestResult = {
 const baseUrl = process.env.BCB_API_BASE_URL ?? 'http://localhost:3333';
 
 const seededClient = {
-  documentId: '12345678000199',
-  clientId: 'client123',
-  conversationId: 'conv456',
-  messageId: 'msg123',
+  documentId: '12345678909',
+  clientId: '11111111-1111-4111-8111-111111111111',
+  conversationId: '44444444-4444-4444-8444-444444444444',
+  messageId: '88888888-8888-4888-8888-888888888888',
 };
 
 const uniqueDigits = () => String(Date.now()).replace(/\D/g, '');
