@@ -71,16 +71,18 @@ export const enqueueMessage = async (input: unknown) => {
       `INSERT INTO messages (
          conversation_id,
          client_id,
+         sender,
          content,
          priority,
          cost,
          status
        )
-       VALUES ($1, $2, $3, $4, $5, 'queued')
+       VALUES ($1, $2, $3, $4, $5, $6, 'queued')
        RETURNING
          id,
          conversation_id,
          client_id,
+         sender,
          content,
          priority,
          cost::float8 AS cost,
@@ -88,7 +90,7 @@ export const enqueueMessage = async (input: unknown) => {
          queued_at::text AS queued_at,
          processed_at::text AS processed_at,
          created_at::text AS created_at`,
-      [conversation.id, client.id, payload.content, payload.priority, cost],
+      [conversation.id, client.id, 'company', payload.content, payload.priority, cost],
     );
 
     await connection.query(
@@ -125,6 +127,7 @@ export const enqueueMessage = async (input: unknown) => {
       id: messageResult.rows[0].id,
       conversationId: messageResult.rows[0].conversation_id,
       clientId: messageResult.rows[0].client_id,
+      sender: messageResult.rows[0].sender,
       content: messageResult.rows[0].content,
       priority: messageResult.rows[0].priority,
       cost: Number(messageResult.rows[0].cost),

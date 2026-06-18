@@ -40,6 +40,7 @@ const buildConversationQuery = (conversationFilter = '', extraClause = '') => `
     JOIN conversations c ON c.id = m.conversation_id
     WHERE c.client_id = $1
       AND m.read_at IS NULL
+      AND m.sender = 'recipient'
     GROUP BY m.conversation_id
   )
   SELECT
@@ -78,7 +79,50 @@ export const markConversationMessagesAsRead = async (conversationId: string) => 
     `UPDATE messages
      SET read_at = NOW()
      WHERE conversation_id = $1
-       AND read_at IS NULL`,
+       AND read_at IS NULL
+       AND sender = 'recipient'`,
     [conversationId],
   );
+};
+
+export const findConversationById = async (conversationId: string) => {
+  const result = await pool.query<ConversationRow>(
+    `
+    WITH latest_messages AS (
+      SELECT DISTINCT ON (m.conversation_id)
+        m.conversation_id,
+        m.content AS last_message_content,
+        m.created_at AS last_message_time
+      FROM messages m
+      WHERE m.conversation_id = $1
+      ORDER BY m.conversation_id, m.created_at DESC, m.queued_at DESC, m.id DESC
+    ),
+    unread_counts AS (
+      SELECT
+        m.conversation_id,
+        COUNT(*)::int AS unread_count
+      FROM messages m
+      WHERE m.conversation_id = $1
+        AND m.read_at IS NULL
+        AND m.sender = 'recipient'
+      GROUP BY m.conversation_id
+    )
+    SELECT
+      c.id,
+      c.client_id,
+      c.title,
+      c.status,
+      lm.last_message_content,
+      lm.last_message_time::text AS last_message_time,
+      COALESCE(uc.unread_count, 0)::int AS unread_count
+    FROM conversations c
+    LEFT JOIN latest_messages lm ON lm.conversation_id = c.id
+    LEFT JOIN unread_counts uc ON uc.conversation_id = c.id
+    WHERE c.id = $1
+    LIMIT 1
+    `,
+    [conversationId],
+  );
+
+  return result.rows[0] ? mapConversation(result.rows[0]) : null;
 };

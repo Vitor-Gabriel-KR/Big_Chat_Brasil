@@ -1,10 +1,11 @@
 import { pool } from './db';
-import { Message, MessagePriority, MessageStatus, toMoney } from '../domain';
+import { Message, MessagePriority, MessageSender, MessageStatus, toMoney } from '../domain';
 
 type MessageRow = {
   id: string;
   conversation_id: string;
   client_id: string;
+  sender: MessageSender;
   content: string;
   priority: MessagePriority;
   cost: string | number;
@@ -19,6 +20,7 @@ const mapMessage = (row: MessageRow): Message => ({
   id: row.id,
   conversationId: row.conversation_id,
   clientId: row.client_id,
+  sender: row.sender,
   content: row.content,
   priority: row.priority,
   cost: toMoney(row.cost),
@@ -35,6 +37,7 @@ export const listMessagesByClientId = async (clientId: string) => {
        m.id,
        m.conversation_id,
        m.client_id,
+       m.sender,
        m.content,
        m.priority,
        m.cost::float8 AS cost,
@@ -59,6 +62,7 @@ export const listQueuedMessagesByClientId = async (clientId: string) => {
        m.id,
        m.conversation_id,
        m.client_id,
+       m.sender,
        m.content,
        m.priority,
        m.cost::float8 AS cost,
@@ -85,6 +89,7 @@ export const findMessageById = async (messageId: string) => {
        m.id,
        m.conversation_id,
        m.client_id,
+       m.sender,
        m.content,
        m.priority,
        m.cost::float8 AS cost,
@@ -109,6 +114,7 @@ export const listQueuedMessagesForWorker = async () => {
        m.id,
        m.conversation_id,
        m.client_id,
+       m.sender,
        m.content,
        m.priority,
        m.cost::float8 AS cost,

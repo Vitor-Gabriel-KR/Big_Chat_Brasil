@@ -1,6 +1,7 @@
 export type PlanType = 'prepaid' | 'postpaid';
 export type MessagePriority = 'normal' | 'urgent';
 export type MessageStatus = 'queued' | 'processing' | 'sent' | 'failed';
+export type MessageSender = 'company' | 'recipient';
 export type FinancialTransactionType = 'debit' | 'credit' | 'limit_adjustment' | 'cycle_reset' | 'plan_conversion';
 
 export type Client = {
@@ -29,6 +30,7 @@ export type Message = {
   id: string;
   conversationId: string;
   clientId: string;
+  sender: MessageSender;
   content: string;
   priority: MessagePriority;
   cost: number;

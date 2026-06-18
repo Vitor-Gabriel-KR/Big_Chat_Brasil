@@ -78,15 +78,6 @@ export default function DashboardPage() {
   );
 
   const queuedMessages = snapshot?.queue ?? [];
-  const formatConversationTime = (value: string | null) => {
-    if (!value) return 'Sem atividade';
-    return new Date(value).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const handleLogout = () => {
     localStorage.removeItem(sessionStorageKey);
@@ -213,33 +204,18 @@ export default function DashboardPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="block text-[13px] font-semibold text-[#C8D8F0] truncate">{conversation.title}</span>
-                      <span className="block text-[10px] text-[#445066] mt-0.5 truncate">
-                        {conversation.lastMessageContent ?? 'Nenhuma mensagem ainda'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <span
-                        className={`text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded ${
-                          conversation.status === 'open'
-                            ? 'bg-[#0A2A1A] text-[#0DDB7A]'
-                            : 'bg-[#1A1A0A] text-[#FAC775]'
-                        }`}
-                      >
-                        {conversation.status === 'open' ? 'Aberta' : 'Fechada'}
-                      </span>
-                      {conversation.unreadCount > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-[#1B6FFF] text-white text-[10px] font-bold">
-                          {conversation.unreadCount}
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-[13px] font-semibold text-[#C8D8F0] truncate">{conversation.title}</span>
+                    <span
+                      className={`flex-shrink-0 text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded ${
+                        conversation.status === 'open'
+                          ? 'bg-[#0A2A1A] text-[#0DDB7A]'
+                          : 'bg-[#1A1A0A] text-[#FAC775]'
+                      }`}
+                    >
+                      {conversation.status === 'open' ? 'Aberta' : 'Fechada'}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2 text-[11px] text-[#445066] mt-1">
-                    <span>{formatConversationTime(conversation.lastMessageTime)}</span>
-                    <span>{qCount} na fila</span>
-                  </div>
+                  <p className="text-[11px] text-[#445066] mt-1">{qCount} mensagens na fila</p>
                 </button>
               );
             })}
@@ -313,27 +289,42 @@ export default function DashboardPage() {
               conversationMessages.length > 0 ? (
                 conversationMessages.map((item) => {
                   const isUrgent = item.priority === 'urgent';
+                  // sender === 'company': mensagem que a própria empresa enviou (alinhada à direita, em azul).
+                  // sender === 'recipient': resposta do cliente final (alinhada à esquerda, em cinza neutro).
+                  const isFromCompany = item.sender === 'company';
                   return (
                     <article
                       key={item.id}
-                      className={`max-w-[88%] bg-[#111622] border rounded-xl px-4 py-3.5 ${
-                        isUrgent ? 'border-[#3A1E1E]' : 'border-[#1E2535]'
-                      }`}
+                      className={`flex ${isFromCompany ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <span
-                          className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded ${
-                            isUrgent ? 'bg-[#1A0D0D] text-[#FF6B6B]' : 'bg-[#0A1A2A] text-[#6699CC]'
-                          }`}
-                        >
-                          {isUrgent ? 'Urgente' : 'Normal'}
-                        </span>
-                        <span className="text-[12px] text-[#556080] font-mono">{formatMoney(item.cost)}</span>
+                      <div
+                        className={`max-w-[88%] border rounded-xl px-4 py-3.5 ${
+                          isFromCompany
+                            ? `bg-[#0D1E3A] ${isUrgent ? 'border-[#3A1E1E]' : 'border-[#1B6FFF]/30'}`
+                            : 'bg-[#111622] border-[#1E2535]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <span
+                            className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded ${
+                              isFromCompany
+                                ? isUrgent
+                                  ? 'bg-[#1A0D0D] text-[#FF6B6B]'
+                                  : 'bg-[#0A1A2A] text-[#6699CC]'
+                                : 'bg-[#1A1A0A] text-[#8899BB]'
+                            }`}
+                          >
+                            {isFromCompany ? (isUrgent ? 'Urgente' : 'Normal') : 'Cliente'}
+                          </span>
+                          {isFromCompany && (
+                            <span className="text-[12px] text-[#556080] font-mono">{formatMoney(item.cost)}</span>
+                          )}
+                        </div>
+                        <p className="text-[14px] text-[#C8D8F0] leading-relaxed">{item.content}</p>
+                        <p className="text-[11px] text-[#445066] mt-2">
+                          {new Date(item.queuedAt).toLocaleString('pt-BR')}
+                        </p>
                       </div>
-                      <p className="text-[14px] text-[#C8D8F0] leading-relaxed">{item.content}</p>
-                      <p className="text-[11px] text-[#445066] mt-2">
-                        {new Date(item.queuedAt).toLocaleString('pt-BR')}
-                      </p>
                     </article>
                   );
                 })

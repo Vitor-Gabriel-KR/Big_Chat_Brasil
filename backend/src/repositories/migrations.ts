@@ -15,6 +15,10 @@ export const ensureBusinessSchema = async () => {
           'plan_conversion'
         );
       END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_sender') THEN
+        CREATE TYPE message_sender AS ENUM ('company', 'recipient');
+      END IF;
     END $$;
   `);
 
@@ -40,7 +44,8 @@ export const ensureBusinessSchema = async () => {
 
   await pool.query(`
     ALTER TABLE messages
-      ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+      ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS sender message_sender NOT NULL DEFAULT 'company';
   `);
 
   await pool.query(`
