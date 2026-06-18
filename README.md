@@ -10,26 +10,6 @@ Confira os detalhes técnicos e o planejamento do projeto:
 - 🛠️ [Explicação da Stack](https://www.notion.so/Explica-o-da-Stack-37f363d155dc80ec8c3de417206c340b)
 - 🔌 [Documentação de Endpoints](https://www.notion.so/Documenta-o-de-Endpoints-383363d155dc8043b9d7f0e654db0de4)
 
-# Tecnologias
-
-## Backend
-
-- Fastify
-- TypeScript
-- PostgreSQL
-- Swagger/OpenAPI
-
-## Frontend
-
-- Next.js
-- React
-- TypeScript
-
-## Infraestrutura
-
-- Docker
-- Docker Compose
-
 ---
 
 # Como Executar
@@ -44,6 +24,21 @@ Confira os detalhes técnicos e o planejamento do projeto:
 ```bash
 docker compose up --build
 ```
+---
+# Informações de acesso ao banco
+
+Utilize as credenciais abaixo para conectar ao banco através do **pgAdmin**, **DBeaver**, extensão do **VS Code** ou qualquer outro cliente PostgreSQL.
+
+> ⚠️ O acesso estará disponível apenas quando o container do PostgreSQL estiver em execução.
+
+| Configuração | Valor |
+|-------------|--------|
+| Host | localhost |
+| Porta | 5433 |
+| Banco de Dados | bcb |
+| Usuário | bcb_user |
+| Senha | bcb_password |
+
 
 Após a inicialização, os serviços estarão disponíveis em:
 
