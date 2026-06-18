@@ -4,6 +4,10 @@ import { ApiError, MessagePriority, messageCostByPriority, normalizeDocumentId }
 import { findClientByDocumentId } from '../repositories/clientRepository';
 import { findConversationByIdAndClientId } from '../repositories/conversationRepository';
 import { pool } from '../repositories/db';
+import {
+  findMessageById,
+  listMessagesByClientIdWithFilters,
+} from '../repositories/messageRepository';
 import { enqueueMessageJob } from '../queue';
 import { loadClientBillingState } from './billingService';
 
@@ -171,4 +175,52 @@ export const enqueueMessage = async (input: unknown) => {
   } finally {
     connection.release();
   }
+};
+
+export const listClientMessages = async (rawDocumentId: string, filters: {
+  conversationId?: string;
+  status?: 'queued' | 'processing' | 'sent' | 'failed';
+  sender?: 'company' | 'recipient';
+}) => {
+  const documentId = normalizeDocumentId(rawDocumentId);
+  const client = await findClientByDocumentId(documentId);
+
+  if (!client || !client.active) {
+    throw new ApiError('Cliente não encontrado.', 404);
+  }
+
+  return listMessagesByClientIdWithFilters({
+    clientId: client.id,
+    conversationId: filters.conversationId,
+    status: filters.status,
+    sender: filters.sender,
+  });
+};
+
+export const getClientMessageById = async (messageId: string, rawDocumentId: string) => {
+  const documentId = normalizeDocumentId(rawDocumentId);
+  const client = await findClientByDocumentId(documentId);
+
+  if (!client || !client.active) {
+    throw new ApiError('Cliente não encontrado.', 404);
+  }
+
+  const message = await findMessageById(messageId);
+
+  if (!message || message.clientId !== client.id) {
+    throw new ApiError('Mensagem não encontrada.', 404);
+  }
+
+  return message;
+};
+
+export const getClientMessageStatus = async (messageId: string, rawDocumentId: string) => {
+  const message = await getClientMessageById(messageId, rawDocumentId);
+
+  return {
+    id: message.id,
+    status: message.status,
+    queuedAt: message.queuedAt,
+    processedAt: message.processedAt,
+  };
 };

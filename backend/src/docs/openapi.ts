@@ -1,0 +1,26 @@
+export const openApiDocument = {
+  openapi: '3.0.3',
+  info: {
+    title: 'BCB API',
+    version: '1.0.0',
+    description: 'API do Big Chat Brasil.',
+  },
+  paths: {
+    '/auth': { post: { summary: 'Autenticação simples' } },
+    '/auth/login': { post: { summary: 'Autenticação simples' } },
+    '/clients': { get: { summary: 'Lista clientes' }, post: { summary: 'Cria cliente' } },
+    '/clients/{id}': { get: { summary: 'Detalhe do cliente' }, put: { summary: 'Atualiza cliente' } },
+    '/clients/{id}/balance': { get: { summary: 'Saldo e limite do cliente' } },
+    '/dashboard': { get: { summary: 'Snapshot do dashboard' } },
+    '/api/conversations': { get: { summary: 'Lista conversas do cliente' } },
+    '/api/conversations/{conversationId}': { get: { summary: 'Detalhe da conversa' } },
+    '/api/conversations/{conversationId}/messages': { get: { summary: 'Mensagens da conversa' } },
+    '/api/conversations/{conversationId}/read': { patch: { summary: 'Marca mensagens como lidas' } },
+    '/api/conversations/{conversationId}/simulate-reply': { post: { summary: 'Simula resposta do destinatário' } },
+    '/messages': { get: { summary: 'Lista mensagens' }, post: { summary: 'Envia mensagem' } },
+    '/messages/{id}': { get: { summary: 'Detalhe da mensagem' } },
+    '/messages/{id}/status': { get: { summary: 'Status da mensagem' } },
+    '/queue/status': { get: { summary: 'Estatísticas da fila' } },
+    '/health': { get: { summary: 'Healthcheck' } },
+  },
+};

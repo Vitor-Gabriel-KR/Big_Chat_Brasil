@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { ApiError } from '../domain';
@@ -10,7 +10,7 @@ const loginSchema = z.object({
 });
 
 export const registerAuthRoutes = async (app: FastifyInstance) => {
-  app.post('/auth/login', async (request, reply) => {
+  const handleLogin = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = loginSchema.parse(request.body);
       const client = await loginWithDocument(body.documentId, body.documentType);
@@ -31,6 +31,8 @@ export const registerAuthRoutes = async (app: FastifyInstance) => {
       request.log.error(error);
       return reply.code(500).send({ error: 'Erro interno ao autenticar.' });
     }
-  });
-};
+  };
 
+  app.post('/auth', handleLogin);
+  app.post('/auth/login', handleLogin);
+};

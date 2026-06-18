@@ -5,9 +5,11 @@ import { findClientByDocumentId } from '../repositories/clientRepository';
 import {
   findConversationById,
   findConversationByIdAndClientId,
+  listConversationsByClientId,
   markConversationMessagesAsRead,
 } from '../repositories/conversationRepository';
 import { pool } from '../repositories/db';
+import { listMessagesByConversationId } from '../repositories/messageRepository';
 
 const markReadSchema = z.object({
   conversationId: z.string().uuid(),
@@ -93,4 +95,49 @@ export const simulateConversationReply = async (input: unknown) => {
       conversationTitle: conversation.title,
     },
   };
+};
+
+export const listClientConversations = async (rawDocumentId: string) => {
+  const documentId = normalizeDocumentId(rawDocumentId);
+  const client = await findClientByDocumentId(documentId);
+
+  if (!client || !client.active) {
+    throw new ApiError('Cliente não encontrado.', 404);
+  }
+
+  return listConversationsByClientId(client.id);
+};
+
+export const getClientConversation = async (conversationId: string, rawDocumentId: string) => {
+  const documentId = normalizeDocumentId(rawDocumentId);
+  const client = await findClientByDocumentId(documentId);
+
+  if (!client || !client.active) {
+    throw new ApiError('Cliente não encontrado.', 404);
+  }
+
+  const conversation = await findConversationByIdAndClientId(conversationId, client.id);
+
+  if (!conversation) {
+    throw new ApiError('Conversa não encontrada.', 404);
+  }
+
+  return conversation;
+};
+
+export const getConversationMessages = async (conversationId: string, rawDocumentId: string) => {
+  const documentId = normalizeDocumentId(rawDocumentId);
+  const client = await findClientByDocumentId(documentId);
+
+  if (!client || !client.active) {
+    throw new ApiError('Cliente não encontrado.', 404);
+  }
+
+  const conversation = await findConversationByIdAndClientId(conversationId, client.id);
+
+  if (!conversation) {
+    throw new ApiError('Conversa não encontrada.', 404);
+  }
+
+  return listMessagesByConversationId(conversation.id);
 };
