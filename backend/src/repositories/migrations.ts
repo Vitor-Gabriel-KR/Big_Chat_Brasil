@@ -39,8 +39,18 @@ export const ensureBusinessSchema = async () => {
   `);
 
   await pool.query(`
+    ALTER TABLE messages
+      ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_financial_transactions_client_id_created_at
       ON financial_transactions(client_id, created_at DESC);
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_messages_conversation_read_at
+      ON messages(conversation_id, read_at);
   `);
 
   await pool.query(`

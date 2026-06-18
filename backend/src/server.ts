@@ -4,6 +4,7 @@ import { ensureBusinessSchema } from './repositories/migrations';
 import { seedDevelopmentData } from './repositories/seed';
 import { registerAuthRoutes } from './controllers/authController';
 import { registerBillingRoutes } from './controllers/billingController';
+import { registerConversationRoutes } from './controllers/conversationController';
 import { registerDashboardRoutes } from './controllers/dashboardController';
 import { registerFinanceRoutes } from './controllers/financeController';
 import { registerMessageRoutes } from './controllers/messageController';
@@ -36,6 +37,7 @@ const start = async () => {
     startMessageWorker(app.log);
     await app.register(registerAuthRoutes);
     await app.register(registerBillingRoutes);
+    await app.register(registerConversationRoutes, { prefix: '/api' });
     await app.register(registerDashboardRoutes);
     await app.register(registerFinanceRoutes);
     await app.register(registerMessageRoutes);

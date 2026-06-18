@@ -20,6 +20,9 @@ export type Conversation = {
   clientId: string;
   title: string;
   status: 'open' | 'closed';
+  lastMessageContent: string | null;
+  lastMessageTime: string | null;
+  unreadCount: number;
 };
 
 export type Message = {

@@ -22,6 +22,9 @@ export default function DashboardPage() {
   const [activeConversationId, setActiveConversationId] = useState('');
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState<MessagePriority>('normal');
+  // Controla qual "tela" é exibida no mobile (abaixo do breakpoint md).
+  // No desktop esse estado é ignorado — sidebar e chat ficam sempre lado a lado.
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   useEffect(() => {
     const savedClient = localStorage.getItem(sessionStorageKey);
@@ -75,6 +78,15 @@ export default function DashboardPage() {
   );
 
   const queuedMessages = snapshot?.queue ?? [];
+  const formatConversationTime = (value: string | null) => {
+    if (!value) return 'Sem atividade';
+    return new Date(value).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   const handleLogout = () => {
     localStorage.removeItem(sessionStorageKey);
@@ -130,7 +142,14 @@ export default function DashboardPage() {
   return (
     <main className="h-screen bg-[#0A0D14] flex overflow-hidden">
       <div className="w-full flex border-t border-[#1E2535] overflow-hidden" style={{ height: '100vh' }}>
-        <aside className="w-64 min-w-[256px] bg-[#0E1320] border-r border-[#1E2535] flex flex-col overflow-hidden">
+        {/*
+          Sidebar (lista de conversas + saldo + KPIs).
+          Desktop (md+): sempre visível, lado a lado com o chat.
+          Mobile: só aparece quando mobileView === 'list' (Tela 1 do fluxo).
+        */}
+        <aside
+          className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-64 md:min-w-[256px] bg-[#0E1320] border-r border-[#1E2535] flex-col overflow-hidden`}
+        >
 
           <div className="px-5 py-5 border-b border-[#1E2535]">
             <span className="inline-flex items-center gap-1.5 bg-[#0A2A1A] text-[#0DDB7A] text-[10px] font-semibold tracking-widest uppercase px-2.5 py-1 rounded-md mb-3">
@@ -151,16 +170,16 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 px-4 py-3">
+          <div className="grid grid-cols-2 gap-1.5 md:gap-2 px-4 py-3">
             {[
               { label: 'Conversas', value: snapshot?.summary.openConversations ?? 0, color: 'text-[#C8D8F0]' },
               { label: 'Fila', value: queuedMessages.length, color: 'text-[#C8D8F0]' },
               { label: 'Urgentes', value: urgentQueuedMessages.length, color: urgentQueuedMessages.length > 0 ? 'text-[#FF6B6B]' : 'text-[#C8D8F0]' },
               { label: 'Custo fila', value: formatMoney(snapshot?.summary.totalQueueCost ?? 0), color: 'text-[#FAC775]' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-[#0A0D14] border border-[#1E2535] rounded-lg px-3 py-2.5">
-                <p className="text-[10px] text-[#556080] font-semibold tracking-widest uppercase">{label}</p>
-                <p className={`text-base font-semibold mt-1 ${color}`}>{value}</p>
+              <div key={label} className="bg-[#0A0D14] border border-[#1E2535] rounded-lg px-2.5 md:px-3 py-2 md:py-2.5">
+                <p className="text-[9px] md:text-[10px] text-[#556080] font-semibold tracking-widest uppercase">{label}</p>
+                <p className={`text-sm md:text-base font-semibold mt-1 ${color}`}>{value}</p>
               </div>
             ))}
           </div>
@@ -183,7 +202,10 @@ export default function DashboardPage() {
                 <button
                   key={conversation.id}
                   type="button"
-                  onClick={() => setActiveConversationId(conversation.id)}
+                  onClick={() => {
+                    setActiveConversationId(conversation.id);
+                    setMobileView('chat'); // no mobile, abrir a conversa troca para a tela de chat
+                  }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${
                     isActive
                       ? 'bg-[#0D1E3A] border-[#1B6FFF]/30'
@@ -191,18 +213,33 @@ export default function DashboardPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-[#C8D8F0] truncate">{conversation.title}</span>
-                    <span
-                      className={`flex-shrink-0 text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded ${
-                        conversation.status === 'open'
-                          ? 'bg-[#0A2A1A] text-[#0DDB7A]'
-                          : 'bg-[#1A1A0A] text-[#FAC775]'
-                      }`}
-                    >
-                      {conversation.status === 'open' ? 'Aberta' : 'Fechada'}
-                    </span>
+                    <div className="min-w-0">
+                      <span className="block text-[13px] font-semibold text-[#C8D8F0] truncate">{conversation.title}</span>
+                      <span className="block text-[10px] text-[#445066] mt-0.5 truncate">
+                        {conversation.lastMessageContent ?? 'Nenhuma mensagem ainda'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span
+                        className={`text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded ${
+                          conversation.status === 'open'
+                            ? 'bg-[#0A2A1A] text-[#0DDB7A]'
+                            : 'bg-[#1A1A0A] text-[#FAC775]'
+                        }`}
+                      >
+                        {conversation.status === 'open' ? 'Aberta' : 'Fechada'}
+                      </span>
+                      {conversation.unreadCount > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-[#1B6FFF] text-white text-[10px] font-bold">
+                          {conversation.unreadCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[11px] text-[#445066] mt-1">{qCount} mensagens na fila</p>
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-[#445066] mt-1">
+                    <span>{formatConversationTime(conversation.lastMessageTime)}</span>
+                    <span>{qCount} na fila</span>
+                  </div>
                 </button>
               );
             })}
@@ -218,30 +255,50 @@ export default function DashboardPage() {
             </button>
           </div>
         </aside>
-        <section className="flex-1 flex flex-col min-w-0 bg-[#0A0D14]">
+        {/*
+          Painel de chat.
+          Desktop (md+): sempre visível, lado a lado com a sidebar.
+          Mobile: só aparece quando mobileView === 'chat' (Tela 2 do fluxo).
+        */}
+        <section
+          className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0 bg-[#0A0D14]`}
+        >
 
           {/* Header */}
-          <header className="flex items-start justify-between gap-4 px-6 py-5 border-b border-[#1E2535] flex-shrink-0">
-            <div>
-              <p className="flex items-center gap-2 text-[11px] font-semibold text-[#1B6FFF] tracking-widest uppercase">
-                <span className="w-3.5 h-px bg-[#1B6FFF]" />
-                Dashboard operacional
-              </p>
-              <h2 className="text-[20px] font-semibold text-[#E8F0FF] tracking-tight mt-1.5">
-                {activeConversation ? activeConversation.title : 'Selecione uma conversa'}
-              </h2>
-              <p className="text-[12px] text-[#556080] mt-1">
-                Fila ativa · custo e prioridade em tempo real
-              </p>
+          <header className="flex items-start justify-between gap-4 px-4 md:px-6 py-4 md:py-5 border-b border-[#1E2535] flex-shrink-0">
+            <div className="flex items-start gap-3 min-w-0">
+              {/* Botão de voltar — só existe no mobile, leva de volta para a lista de conversas */}
+              <button
+                type="button"
+                onClick={() => setMobileView('list')}
+                className="md:hidden flex-shrink-0 mt-0.5 w-7 h-7 rounded-lg border border-[#1E2535] bg-[#111622] text-[#8899BB] flex items-center justify-center hover:text-[#E8F0FF] hover:border-[#2A3550] transition-colors"
+                aria-label="Voltar para a lista de conversas"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none">
+                  <path d="M10 12.5 5.5 8 10 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-[11px] font-semibold text-[#1B6FFF] tracking-widest uppercase">
+                  <span className="w-3.5 h-px bg-[#1B6FFF]" />
+                  Dashboard operacional
+                </p>
+                <h2 className="text-[18px] md:text-[20px] font-semibold text-[#E8F0FF] tracking-tight mt-1.5 truncate">
+                  {activeConversation ? activeConversation.title : 'Selecione uma conversa'}
+                </h2>
+                <p className="text-[12px] text-[#556080] mt-1">
+                  Fila ativa · custo e prioridade em tempo real
+                </p>
+              </div>
             </div>
-            <div className="bg-[#0D1E3A] border border-[#1B6FFF]/20 rounded-xl px-4 py-3 text-right flex-shrink-0">
-              <p className="text-[18px] font-semibold text-[#1B6FFF]">{snapshot?.summary.queuedMessages ?? 0}</p>
+            <div className="bg-[#0D1E3A] border border-[#1B6FFF]/20 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-right flex-shrink-0">
+              <p className="text-[16px] md:text-[18px] font-semibold text-[#1B6FFF]">{snapshot?.summary.queuedMessages ?? 0}</p>
               <p className="text-[10px] text-[#556080] uppercase tracking-widest mt-0.5">na fila</p>
             </div>
           </header>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3 min-h-0">
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5 space-y-3 min-h-0">
             {error && (
               <div className="flex items-center gap-2 bg-[#1A0D0D] border border-[#5A1E1E] rounded-lg px-4 py-3 text-[#FF6B6B] text-sm" role="alert">
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 16 16" fill="none">
@@ -315,19 +372,33 @@ export default function DashboardPage() {
           {/* Composer */}
           <form
             onSubmit={handleSendMessage}
-            className="px-6 py-4 border-t border-[#1E2535] flex-shrink-0 space-y-2.5"
+            className="px-4 md:px-6 py-3 md:py-4 border-t border-[#1E2535] flex-shrink-0 space-y-2.5"
           >
-            <div className="flex gap-2.5 items-center">
-              <input
-                className="flex-1 bg-[#111622] border border-[#1E2535] rounded-lg px-3.5 py-2.5 text-[14px] text-[#E8F0FF] placeholder-[#334055] outline-none focus:border-[#1B6FFF] transition-colors disabled:opacity-40"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Escreva a mensagem para entrar na fila"
-                disabled={!activeConversation}
-              />
+            {/*
+              No mobile (telas estreitas) o seletor Normal/Urgente fica em uma linha própria,
+              acima do campo de texto, para não espremer os botões. No desktop (md+) tudo fica
+              numa única linha, lado a lado, como já era antes.
+            */}
+            <div className="flex flex-col md:flex-row gap-2.5 md:items-center">
+              <div className="flex gap-2.5 items-center order-2 md:order-1 md:flex-1">
+                <input
+                  className="flex-1 bg-[#111622] border border-[#1E2535] rounded-lg px-3.5 py-2.5 text-[14px] text-[#E8F0FF] placeholder-[#334055] outline-none focus:border-[#1B6FFF] transition-colors disabled:opacity-40"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Escreva a mensagem para entrar na fila"
+                  disabled={!activeConversation}
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !activeConversation}
+                  className="bg-[#1B6FFF] hover:bg-[#2E7AFF] disabled:bg-[#1B3566] disabled:text-[#4A6699] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors flex-shrink-0"
+                >
+                  {sending ? 'Enviando...' : 'Enviar'}
+                </button>
+              </div>
 
-              {/* Priority toggle */}
-              <div className="flex bg-[#0A0D14] border border-[#1E2535] rounded-lg p-0.5 gap-0.5 flex-shrink-0">
+              {/* Priority toggle — obrigatório, sempre visível antes do envio */}
+              <div className="flex bg-[#0A0D14] border border-[#1E2535] rounded-lg p-0.5 gap-0.5 flex-shrink-0 order-1 md:order-2 self-start md:self-auto">
                 <button
                   type="button"
                   disabled={!activeConversation}
@@ -355,14 +426,6 @@ export default function DashboardPage() {
                   <span className="opacity-60 text-[10px] font-mono">R$0,50</span>
                 </button>
               </div>
-
-              <button
-                type="submit"
-                disabled={sending || !activeConversation}
-                className="bg-[#1B6FFF] hover:bg-[#2E7AFF] disabled:bg-[#1B3566] disabled:text-[#4A6699] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors flex-shrink-0"
-              >
-                {sending ? 'Enviando...' : 'Enviar'}
-              </button>
             </div>
             <p className="text-[11px] text-[#3A4A60]">
               A mensagem é registrada no backend e entra na fila automaticamente.
